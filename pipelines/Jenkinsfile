@@ -1,0 +1,63 @@
+pipeline {
+  agent any
+  environment {
+    DOTNET_CLI_TELEMETRY_OPTOUT = "1"
+    IMAGE = "monprojetpfe:latest"
+    K8S_NS = "monprojetpfe"
+    SONARQUBE_INSTANCE = "sonarqube"   // nom dans Jenkins Global Config
+  }
+  stages {
+    stage('Checkout') { steps { checkout scm } }
+
+    stage('Restore/Build/Test') {
+      steps {
+        sh 'dotnet --info'
+        sh 'dotnet restore src/MonProjetPFE.csproj'
+        sh 'dotnet build -c Release src/MonProjetPFE.csproj'
+        sh 'dotnet test -c Release --no-build'
+      }
+    }
+
+    stage('SonarQube Analysis') {
+      environment { SONAR_TOKEN = credentials('sonar-token') }
+      steps {
+        withSonarQubeEnv("${env.SONARQUBE_INSTANCE}") {
+          sh '''
+          dotnet tool install --global dotnet-sonarscanner || true
+          export PATH="$PATH:$HOME/.dotnet/tools"
+          dotnet-sonarscanner begin /k:"MonProjetPFE" /d:sonar.login="$SONAR_TOKEN"
+          dotnet build -c Release src/MonProjetPFE.csproj
+          dotnet-sonarscanner end /d:sonar.login="$SONAR_TOKEN"
+          '''
+        }
+      }
+    }
+
+    stage('Docker Build (local)') {
+      steps {
+        sh 'docker build -t $IMAGE -f infra/docker/Dockerfile .'
+      }
+    }
+
+    stage('Load Image to Minikube') {
+      steps {
+        sh 'minikube image load $IMAGE'
+      }
+    }
+
+    stage('Deploy to Minikube') {
+      steps {
+        sh '''
+        kubectl apply -f infra/k8s/pv.yaml
+        kubectl apply -f infra/k8s/deployment.yaml
+        kubectl -n $K8S_NS rollout status deploy/portal
+        '''
+      }
+    }
+  }
+  post {
+    always {
+      archiveArtifacts artifacts: '**/*.trx', allowEmptyArchive: true
+    }
+  }
+}

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: portal
+  namespace: monprojetpfe
+spec:
+  type: ClusterIP
+  selector:
+    app: portal
+  ports:
+    - port: 80
+      targetPort: 8080

@@ -1,0 +1,91 @@
+@page
+@model MonProjetPFE.Pages.IndexModel
+@{
+    ViewData["Title"] = "Orchestrateur Workflows";
+}
+<h1>Orchestrateur Workflows</h1>
+
+<section>
+  <h2>Créer Tâche</h2>
+  <form id="formCreer">
+    <input name="title" placeholder="Titre de la tâche" required />
+    <button type="submit">Créer</button>
+  </form>
+</section>
+
+<section>
+  <h2>Modifier Tâche</h2>
+  <form id="formModifier">
+    <input name="id" type="number" placeholder="Id" required />
+    <input name="title" placeholder="Nouveau titre" />
+    <input name="status" placeholder="Nouveau statut (NEW/IN_PROGRESS/DONE)" />
+    <button type="submit">Modifier</button>
+  </form>
+</section>
+
+<section>
+  <h2>Supprimer Tâche</h2>
+  <form id="formSupprimer">
+    <input name="id" type="number" placeholder="Id" required />
+    <button type="submit">Supprimer</button>
+  </form>
+</section>
+
+<section>
+  <h2>Résultat</h2>
+  <pre id="result"></pre>
+</section>
+
+<section>
+  <h2>Liste locale (SQLite)</h2>
+  <p><em>(Simple aperçu côté IHM ; la vérité métier vient de tes systèmes cibles)</em></p>
+  <table>
+    <thead><tr><th>Id</th><th>Titre</th><th>Statut</th><th>Créée</th></tr></thead>
+    <tbody>
+      @foreach (var t in Model.RecentTasks)
+      {
+        <tr><td>@t.Id</td><td>@t.Title</td><td>@t.Status</td><td>@t.CreatedAt.ToLocalTime()</td></tr>
+      }
+    </tbody>
+  </table>
+</section>
+
+<script>
+async function call(actionName, payload){
+  const r = await fetch(`/api/workflows/${actionName}`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(payload||{})
+  });
+  const j = await r.json();
+  document.getElementById('result').textContent = JSON.stringify(j,null,2);
+  if(j.buildNumber){
+    let status = "RUNNING";
+    while(status === "RUNNING"){
+      await new Promise(res => setTimeout(res, 1500));
+      const s = await fetch(`/api/workflows/${actionName}/${j.buildNumber}/status`);
+      const js = await s.json();
+      status = js.status || "RUNNING";
+      document.getElementById('result').textContent = JSON.stringify(js,null,2);
+    }
+  }
+}
+
+document.getElementById('formCreer').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  await call('CreerTache', { title: fd.get('title') });
+});
+
+document.getElementById('formModifier').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  await call('ModifierTache', { id: fd.get('id'), title: fd.get('title'), status: fd.get('status') });
+});
+
+document.getElementById('formSupprimer').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  await call('SupprimerTache', { id: fd.get('id') });
+});
+</script>
