@@ -14,7 +14,7 @@ pipeline {
         sh 'dotnet --info'
         sh 'dotnet restore src/MonProjetPFE.csproj'
         sh 'dotnet build -c Release src/MonProjetPFE.csproj'
-        sh 'dotnet test -c Release --no-build'
+        sh 'dotnet test src/MonProjetPFE.csproj -c Release --no-build'
       }
     }
 
@@ -48,8 +48,12 @@ pipeline {
     stage('Deploy to Minikube') {
       steps {
         sh '''
+        kubectl apply -f infra/k8s/namespace.yaml
         kubectl apply -f infra/k8s/pv.yaml
+        kubectl apply -f infra/k8s/pvc.yaml
+        kubectl apply -f infra/k8s/service.yaml
         kubectl apply -f infra/k8s/deployment.yaml
+        kubectl apply -f infra/k8s/ingress.yaml
         kubectl -n $K8S_NS rollout status deploy/portal
         '''
       }
