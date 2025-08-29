@@ -39,6 +39,12 @@ pipeline {
       }
     }
 
+    stage('Start Minikube') {
+            steps {
+                sh 'minikube start --driver=docker || true'
+            }
+        }
+
     stage('Load Image to Minikube') {
       steps {
         sh 'minikube image load $IMAGE'
