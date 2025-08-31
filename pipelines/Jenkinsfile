@@ -14,7 +14,7 @@ pipeline {
         sh 'dotnet --info'
         sh 'dotnet restore src/MonProjetPFE.csproj'
         sh 'dotnet build -c Release src/MonProjetPFE.csproj'
-        sh 'dotnet test src/MonProjetPFE.csproj -c Release --no-build'
+        sh 'dotnet test src/MonProjetPFE.csproj -c Release --no-build --logger "trx"'
       }
     }
 
@@ -34,36 +34,29 @@ pipeline {
     }
 
     stage('Docker Build (local)') {
-      steps {
-        sh 'docker build -t $IMAGE -f infra/docker/Dockerfile .'
-      }
-    }
+  steps {
+    sh '''
+    eval $(minikube docker-env)
+    docker build -t $IMAGE -f infra/docker/Dockerfile .
+    '''
+  }
+}
 
-    stage('Start Minikube') {
-            steps {
-                sh 'minikube start --driver=docker || true'
-            }
-        }
-
-    stage('Load Image to Minikube') {
-      steps {
-        sh 'minikube image load $IMAGE'
-      }
-    }
 
     stage('Deploy to Minikube') {
-      steps {
-        sh '''
-        kubectl apply -f infra/k8s/namespace.yaml
-        kubectl apply -f infra/k8s/pv.yaml
-        kubectl apply -f infra/k8s/pvc.yaml
-        kubectl apply -f infra/k8s/service.yaml
-        kubectl apply -f infra/k8s/deployment.yaml
-        kubectl apply -f infra/k8s/ingress.yaml
-        kubectl -n $K8S_NS rollout status deploy/portal
-        '''
-      }
-    }
+  steps {
+    sh '''
+    kubectl apply -f infra/k8s/namespace.yaml
+    kubectl -n $K8S_NS apply -f infra/k8s/pv.yaml
+    kubectl -n $K8S_NS apply -f infra/k8s/pvc.yaml
+    kubectl -n $K8S_NS apply -f infra/k8s/deployment.yaml
+    kubectl -n $K8S_NS apply -f infra/k8s/service.yaml
+    kubectl -n $K8S_NS apply -f infra/k8s/ingress.yaml
+    kubectl -n $K8S_NS rollout status deploy/portal
+    '''
+  }
+}
+
   }
   post {
     always {
