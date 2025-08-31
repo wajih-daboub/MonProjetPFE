@@ -50,7 +50,6 @@ pipeline {
     echo "Déploiement sur Minikube..."
     kubectl apply -f infra/k8s/storageclass.yaml --validate=false
     kubectl apply -f infra/k8s/namespace.yaml --validate=false
-    kubectl -n $K8S_NS apply -f infra/k8s/pv.yaml --validate=false
 
     # Supprimer le deployment et le pod avant de modifier le PVC
     kubectl -n $K8S_NS delete deployment portal --ignore-not-found=true
