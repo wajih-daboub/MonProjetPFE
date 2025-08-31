@@ -36,8 +36,7 @@ pipeline {
     stage('Docker Build (local)') {
   steps {
     sh '''
-    eval $(minikube docker-env)
-    docker build -t $IMAGE -f infra/docker/Dockerfile .
+    minikube image build -t $IMAGE -f infra/docker/Dockerfile .
     '''
   }
 }
