@@ -5,6 +5,7 @@ pipeline {
     IMAGE = "monprojetpfe:latest"
     K8S_NS = "monprojetpfe"
     SONARQUBE_INSTANCE = "sonarqube"   // nom dans Jenkins Global Config
+    HOME = "/var/lib/jenkins"
   }
   stages {
     stage('Checkout') { steps { checkout scm } }
