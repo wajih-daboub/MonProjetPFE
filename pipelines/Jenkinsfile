@@ -46,10 +46,19 @@ pipeline {
     stage('Deploy to Minikube') {
   steps {
     sh '''
-    
+    echo "Déploiement sur Minikube..."
+
     kubectl apply -f infra/k8s/namespace.yaml --validate=false
     kubectl -n $K8S_NS apply -f infra/k8s/pv.yaml --validate=false
+
+    # Vérifier si le PVC existe
+    if kubectl -n $K8S_NS get pvc portal-pvc > /dev/null 2>&1; then
+      echo "PVC déjà existant. Suppression pour éviter conflit..."
+      kubectl -n $K8S_NS delete pvc portal-pvc
+    fi
+
     kubectl -n $K8S_NS apply -f infra/k8s/pvc.yaml --validate=false
+
     kubectl -n $K8S_NS apply -f infra/k8s/deployment.yaml --validate=false
     kubectl -n $K8S_NS apply -f infra/k8s/service.yaml --validate=false
     kubectl -n $K8S_NS apply -f infra/k8s/ingress.yaml --validate=false
