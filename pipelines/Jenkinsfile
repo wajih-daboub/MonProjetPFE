@@ -38,6 +38,7 @@ pipeline {
   steps {
     sh '''
     minikube image build -t $IMAGE -f infra/docker/Dockerfile .
+    minikube image load $IMAGE
     '''
   }
 }
