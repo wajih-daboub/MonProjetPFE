@@ -83,9 +83,8 @@ pipeline {
           kubectl -n "$K8S_NS" apply -f infra/k8s/ingress.yaml --validate=false
 
           echo "=== Forcer l'image du déploiement ==="
-          kubectl -n "$K8S_NS" set image deploy/portal portal="$IMAGE" --record=true
-          kubectl -n "$K8S_NS" patch deploy portal \
-            -p '{"spec":{"template":{"spec":{"containers":[{"name":"portal","imagePullPolicy":"IfNotPresent"}]}}}}'
+          kubectl -n $K8S_NS set image deploy/portal portal=monprojetpfe:latest
+          kubectl -n $K8S_NS patch deploy portal -p '{"spec":{"template":{"spec":{"containers":[{"name":"portal","imagePullPolicy":"Never"}]}}}}'
 
           echo "=== Attente rollout ==="
           kubectl -n "$K8S_NS" rollout status deploy/portal --timeout=180s
