@@ -42,9 +42,21 @@ using (var scope = app.Services.CreateScope())
 app.UseStaticFiles();
 app.MapRazorPages();
 
-// API minimal pour déclencher/poller Jenkins
+
+// ========== API interne pour gérer les tâches locales ==========
+app.MapPost("/api/tasks", async (TaskItem task, AppDbContext db) =>
+{
+    task.Status = string.IsNullOrWhiteSpace(task.Status) ? "NEW" : task.Status;
+    task.CreatedAt = DateTime.UtcNow;
+    db.Tasks.Add(task);
+    await db.SaveChangesAsync();
+    return Results.Created($"/api/tasks/{task.Id}", task);
+});
+
+
+// ========== API pour déclencher Jenkins ==========
 app.MapPost("/api/workflows/{actionName}", async (
-    string actionName, HttpContext http, IHttpClientFactory f, IConfiguration cfg) =>
+    string actionName, HttpContext http, IHttpClientFactory f, IConfiguration cfg, IServiceProvider sp) =>
 {
     var client = f.CreateClient("jenkins");
     var job = cfg[$"Jenkins:Jobs:{actionName}"];
@@ -64,7 +76,21 @@ app.MapPost("/api/workflows/{actionName}", async (
     if (!resp.IsSuccessStatusCode)
         return Results.Problem($"Jenkins trigger failed: {resp.StatusCode}");
 
-    // Poll queue item to get build number
+    // Si c'est une création de tâche => on ajoute direct en DB locale
+    if (actionName.Equals("CreerTache", StringComparison.OrdinalIgnoreCase) && parameters != null)
+    {
+        using var scope2 = sp.CreateScope();
+        var db = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
+        var t = new TaskItem {
+            Title = parameters.GetValueOrDefault("title") ?? "Sans titre",
+            Status = "NEW",
+            CreatedAt = DateTime.UtcNow
+        };
+        db.Tasks.Add(t);
+        await db.SaveChangesAsync();
+    }
+
+    // Poll queue item to récupérer le numéro de build Jenkins
     if (resp.Headers.Location is null) return Results.Ok(new { job, buildNumber = (int?)null });
     var queueUrl = resp.Headers.Location.ToString() + "api/json";
 
@@ -80,6 +106,8 @@ app.MapPost("/api/workflows/{actionName}", async (
     return Results.Ok(new { job, buildNumber = (int?)null });
 });
 
+
+// ========== API pour suivre le statut Jenkins ==========
 app.MapGet("/api/workflows/{actionName}/{buildNumber:int}/status", async (
     string actionName, int buildNumber, IHttpClientFactory f, IConfiguration cfg) =>
 {
@@ -94,5 +122,6 @@ app.MapGet("/api/workflows/{actionName}/{buildNumber:int}/status", async (
     var status = resultProp ?? "RUNNING";
     return Results.Ok(new { job, buildNumber, status });
 });
+
 
 app.Run();

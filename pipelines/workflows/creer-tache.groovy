@@ -7,12 +7,7 @@ pipeline {
     stage('Créer Tâche (exemple)') {
       steps {
         echo "Création de la tâche: ${params.title}"
-        // Exemple d'appel vers ton système métier (remplace l’URL):
-        sh '''
-        curl -s -X POST http://platform-internal/api/tasks \
-          -H "Content-Type: application/json" \
-          -d '{"title":"'"${title}"'","status":"NEW"}' || true
-        '''
+        // Ici éventuellement tes vraies étapes métier côté Jenkins
       }
     }
   }
