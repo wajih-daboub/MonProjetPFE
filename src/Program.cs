@@ -40,6 +40,13 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseStaticFiles();
+using Prometheus;
+
+// Endpoint Prometheus
+app.UseHttpMetrics(); // collecte des métriques HTTP automatiquement
+
+app.MapMetrics("/metrics"); // expose les métriques à Prometheus
+
 app.MapRazorPages();
 
 
@@ -114,7 +121,7 @@ app.MapPost("/api/workflows/{actionName}", async (
         {
             Title = parameters?["title"] ?? "Sans titre",
             Status = "NEW",
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
             Result = "PENDING"
         };
         db.Tasks.Add(t);

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "4hV4IJnBa1DEi3qHU0K8/GilhwKMq04AP44VQ6s11U0VZRSaOjTm0D/SAinvtfQXykQbLB+M8fj7wScigERW7w==",
+  "dgSpecHash": "aTZEO7ZxtCYtJ0GElKzJJtT0Br/g8sfZXtPCdP9ZHylf8MWNr+5oJRpZggCTt4AiwmWGwOORG5ZANLsM6AXhgA==",
   "success": true,
   "projectFilePath": "/home/wajih/MonProjetPFE/src/MonProjetPFE.csproj",
   "expectedPackageFiles": [
@@ -26,11 +26,15 @@
     "/home/wajih/.nuget/packages/microsoft.extensions.dependencyinjection/8.0.0/microsoft.extensions.dependencyinjection.8.0.0.nupkg.sha512",
     "/home/wajih/.nuget/packages/microsoft.extensions.dependencyinjection.abstractions/8.0.0/microsoft.extensions.dependencyinjection.abstractions.8.0.0.nupkg.sha512",
     "/home/wajih/.nuget/packages/microsoft.extensions.dependencymodel/8.0.1/microsoft.extensions.dependencymodel.8.0.1.nupkg.sha512",
+    "/home/wajih/.nuget/packages/microsoft.extensions.http/3.1.0/microsoft.extensions.http.3.1.0.nupkg.sha512",
     "/home/wajih/.nuget/packages/microsoft.extensions.logging/8.0.0/microsoft.extensions.logging.8.0.0.nupkg.sha512",
     "/home/wajih/.nuget/packages/microsoft.extensions.logging.abstractions/8.0.0/microsoft.extensions.logging.abstractions.8.0.0.nupkg.sha512",
+    "/home/wajih/.nuget/packages/microsoft.extensions.objectpool/7.0.0/microsoft.extensions.objectpool.7.0.0.nupkg.sha512",
     "/home/wajih/.nuget/packages/microsoft.extensions.options/8.0.0/microsoft.extensions.options.8.0.0.nupkg.sha512",
     "/home/wajih/.nuget/packages/microsoft.extensions.primitives/8.0.0/microsoft.extensions.primitives.8.0.0.nupkg.sha512",
     "/home/wajih/.nuget/packages/mono.texttemplating/2.2.1/mono.texttemplating.2.2.1.nupkg.sha512",
+    "/home/wajih/.nuget/packages/prometheus-net/8.2.1/prometheus-net.8.2.1.nupkg.sha512",
+    "/home/wajih/.nuget/packages/prometheus-net.aspnetcore/8.2.1/prometheus-net.aspnetcore.8.2.1.nupkg.sha512",
     "/home/wajih/.nuget/packages/sqlitepclraw.bundle_e_sqlite3/2.1.6/sqlitepclraw.bundle_e_sqlite3.2.1.6.nupkg.sha512",
     "/home/wajih/.nuget/packages/sqlitepclraw.core/2.1.6/sqlitepclraw.core.2.1.6.nupkg.sha512",
     "/home/wajih/.nuget/packages/sqlitepclraw.lib.e_sqlite3/2.1.6/sqlitepclraw.lib.e_sqlite3.2.1.6.nupkg.sha512",
