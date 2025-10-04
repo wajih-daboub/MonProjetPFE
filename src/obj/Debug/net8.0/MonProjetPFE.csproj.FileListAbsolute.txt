@@ -125,3 +125,6 @@
 /home/wajih/MonProjetPFE/src/obj/Debug/net8.0/MonProjetPFE.genruntimeconfig.cache
 /home/wajih/MonProjetPFE/src/obj/Debug/net8.0/ref/MonProjetPFE.dll
 /home/wajih/MonProjetPFE/src/bin/Debug/net8.0/MonProjetPFE.staticwebassets.runtime.json
+/home/wajih/MonProjetPFE/src/obj/Debug/net8.0/MonProjetPFE.MvcApplicationPartsAssemblyInfo.cs
+/home/wajih/MonProjetPFE/src/bin/Debug/net8.0/Prometheus.NetStandard.dll
+/home/wajih/MonProjetPFE/src/bin/Debug/net8.0/Prometheus.AspNetCore.dll

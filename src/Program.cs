@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MonProjetPFE.Models;
+using Prometheus;
 using System.Text;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -32,6 +33,13 @@ builder.Services.AddHttpClient("jenkins", client => {
 // Build
 var app = builder.Build();
 
+// ---------------- Prometheus Metrics ----------------
+var tasksUpdatedCounter = Metrics.CreateCounter("tasks_updated_total", "Nombre total de tâches modifiées");
+var tasksDeletedCounter = Metrics.CreateCounter("tasks_deleted_total", "Nombre total de tâches supprimées");
+var jenkinsTriggerCounter = Metrics.CreateCounter("jenkins_triggers_total", "Nombre total de triggers Jenkins");
+var jenkinsTriggerDuration = Metrics.CreateHistogram("jenkins_trigger_duration_seconds", "Durée des triggers Jenkins en secondes");
+
+
 // DB init (dev local): crée le fichier si absent
 using (var scope = app.Services.CreateScope())
 {
@@ -40,7 +48,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseStaticFiles();
-using Prometheus;
+
 
 // Endpoint Prometheus
 app.UseHttpMetrics(); // collecte des métriques HTTP automatiquement
@@ -49,6 +57,21 @@ app.MapMetrics("/metrics"); // expose les métriques à Prometheus
 
 app.MapRazorPages();
 
+
+//Promethus Metrics
+var tasksCreatedCounter = Metrics.CreateCounter("tasks_created_total", "Nombre total de tâches créées");
+
+app.MapPost("/api/tasks", async (TaskItem task, AppDbContext db) =>
+{
+    task.Status = string.IsNullOrWhiteSpace(task.Status) ? "NEW" : task.Status;
+    task.CreatedAt = DateTime.UtcNow;
+    db.Tasks.Add(task);
+    await db.SaveChangesAsync();
+
+    tasksCreatedCounter.Inc(); // incrémente la métrique Prometheus
+
+    return Results.Created($"/api/tasks/{task.Id}", task);
+});
 
 // ========== API interne pour gérer les tâches locales ==========
 app.MapPost("/api/tasks", async (TaskItem task, AppDbContext db) =>
@@ -74,6 +97,7 @@ app.MapPut("/api/tasks/{id:int}", async (int id, TaskItem updated, AppDbContext 
     task.Title = string.IsNullOrWhiteSpace(updated.Title) ? task.Title : updated.Title;
     task.Status = string.IsNullOrWhiteSpace(updated.Status) ? task.Status : updated.Status;
     await db.SaveChangesAsync();
+    tasksCreatedCounter.Inc();
     return Results.Ok(task);
 });
 
@@ -84,6 +108,7 @@ app.MapDelete("/api/tasks/{id:int}", async (int id, AppDbContext db) =>
     if (task is null) return Results.NotFound();
     db.Tasks.Remove(task);
     await db.SaveChangesAsync();
+    tasksCreatedCounter.Inc();
     return Results.Ok(new { deleted = id });
 });
 
@@ -106,8 +131,12 @@ app.MapPost("/api/workflows/{actionName}", async (
         ? $"/job/{Uri.EscapeDataString(job)}/buildWithParameters"
         : $"/job/{Uri.EscapeDataString(job)}/build";
 
+    // ✅ Déclenchement Jenkins avec métriques Prometheus
+    using var timer = jenkinsTriggerDuration.NewTimer(); // démarre le timer
     var resp = await client.PostAsync(url, parameters is { Count: > 0 }
         ? new FormUrlEncodedContent(parameters) : null);
+    jenkinsTriggerCounter.Inc(); // incrémente le compteur de triggers
+
     if (!resp.IsSuccessStatusCode)
         return Results.Problem($"Jenkins trigger failed: {resp.StatusCode}");
 
@@ -197,6 +226,7 @@ app.MapGet("/api/workflows/{actionName}/{buildNumber:int}/status", async (
     }
     return Results.Ok(new { job, buildNumber, status });
 });
+
 
 
 app.Run();

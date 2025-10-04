@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MonProjetPFE")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+874219134b533063446cb57c970bc8b1295c006a")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0b5a74a51b0eca0f6984a5fc4c341ae2ec2e6389")]
 [assembly: System.Reflection.AssemblyProductAttribute("MonProjetPFE")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MonProjetPFE")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
