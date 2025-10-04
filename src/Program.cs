@@ -115,6 +115,7 @@ app.MapPost("/api/workflows/{actionName}", async (
             Title = parameters?["title"] ?? "Sans titre",
             Status = "NEW",
             CreatedAt = DateTime.UtcNow
+            Result = "PENDING"
         };
         db.Tasks.Add(t);
         await db.SaveChangesAsync();
@@ -178,6 +179,15 @@ app.MapGet("/api/workflows/{actionName}/{buildNumber:int}/status", async (
     using var doc = JsonDocument.Parse(json);
     var resultProp = doc.RootElement.TryGetProperty("result", out var res) ? res.GetString() : null;
     var status = resultProp ?? "RUNNING";
+    //Mettre à jour la DB avec le résultat
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var task = db.Tasks.OrderByDescending(t => t.CreatedAt).FirstOrDefault();
+    if (task != null)
+    {
+        task.Result = status;
+        await db.SaveChangesAsync();
+    }
     return Results.Ok(new { job, buildNumber, status });
 });
 

@@ -46,7 +46,7 @@
 
         <table>
             <thead>
-                <tr><th>Id</th><th>Titre</th><th>Statut</th><th>Créée</th></tr>
+                <tr><th>Id</th><th>Titre</th><th>Statut</th><th>Créée</th><th>Résultat</th></tr>
             </thead>
             <tbody>
                 @foreach (var t in Model.RecentTasks)
@@ -56,6 +56,7 @@
                         <td>@t.Title</td>
                         <td>@t.Status</td>
                         <td>@t.CreatedAt.ToLocalTime()</td>
+                        <td>@t.Result</td>
                     </tr>
                 }
             </tbody>

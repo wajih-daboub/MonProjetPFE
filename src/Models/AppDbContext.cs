@@ -8,6 +8,7 @@ public class TaskItem
     public string Title { get; set; } = default!;
     public string Status { get; set; } = "NEW"; // NEW|IN_PROGRESS|DONE
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public string? Result { get; set; } 
 }
 
 public class AppDbContext : DbContext
