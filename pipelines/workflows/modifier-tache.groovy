@@ -9,11 +9,11 @@ pipeline {
     stage('Modifier Tâche (exemple)') {
       steps {
         echo "Modification id=${params.id} title=${params.title} status=${params.status}"
-        sh '''
-        curl -s -X PUT http://platform-internal/api/tasks/'"${id}"' \
-          -H "Content-Type: application/json" \
-          -d '{"title":"'"${title}"'","status":"'"${status}"'"}' || true
-        '''
+        sh """
+          curl -s -X PUT http://platform-internal/api/tasks/${params.id} \
+            -H "Content-Type: application/json" \
+            -d '{"title":"${params.title}","status":"${params.status}"}' || true
+        """
       }
     }
   }
