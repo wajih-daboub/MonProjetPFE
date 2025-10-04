@@ -1,0 +1,110 @@
+pipeline {
+  agent any
+  environment {
+    DOTNET_CLI_TELEMETRY_OPTOUT = "1"
+    K8S_NS = "monprojetpfe"
+    SONARQUBE_INSTANCE = "sonarqube"
+    HOME = "/var/lib/jenkins"
+  }
+
+  stages {
+    stage('Checkout') { steps { checkout scm } }
+
+    stage('Prepare Build Tag') {
+      steps {
+        script {
+          env.BUILD_TAG = sh(script: 'echo ${GIT_COMMIT:-dev-$(date +%Y%m%d-%H%M%S)}', returnStdout: true).trim()
+          env.IMAGE = "monprojetpfe:${env.BUILD_TAG}"
+          echo "IMAGE=${env.IMAGE}"
+        }
+      }
+    }
+
+    stage('Restore/Build/Test') {
+      steps {
+        sh 'dotnet --info'
+        sh 'dotnet restore src/MonProjetPFE.csproj'
+        sh 'dotnet build -c Release src/MonProjetPFE.csproj'
+        sh 'dotnet test src/MonProjetPFE.csproj -c Release --no-build --logger "trx"'
+      }
+    }
+
+    stage('SonarQube Analysis') {
+      environment { SONAR_TOKEN = credentials('sonar-token') }
+      steps {
+        withSonarQubeEnv("${env.SONARQUBE_INSTANCE}") {
+          sh '''
+            dotnet tool install --global dotnet-sonarscanner || true
+            export PATH="$PATH:$HOME/.dotnet/tools"
+            dotnet-sonarscanner begin /k:"MonProjetPFE" /d:sonar.login="$SONAR_TOKEN"
+            dotnet build -c Release src/MonProjetPFE.csproj
+            dotnet-sonarscanner end /d:sonar.login="$SONAR_TOKEN"
+          '''
+        }
+      }
+    }
+
+    stage('Docker Build (Minikube)') {
+      steps {
+        sh '''
+          echo "=== Build image dans Minikube ==="
+          minikube image build -t "$IMAGE" -f infra/docker/Dockerfile .
+
+          echo "=== Vérification de l'image dans Minikube ==="
+          docker images | grep monprojetpfe || true
+          minikube image ls | grep monprojetpfe || true
+        '''
+      }
+    }
+
+    stage('Deploy to Minikube') {
+      steps {
+        sh '''#!/bin/bash
+          set -euxo pipefail
+
+          echo "=== Apply manifests ==="
+          kubectl apply -f infra/k8s/storageclass.yaml --validate=false
+          kubectl apply -f infra/k8s/namespace.yaml --validate=false
+
+          # Reset before redeploy
+          kubectl -n "$K8S_NS" delete deploy portal --ignore-not-found=true
+          kubectl -n "$K8S_NS" delete pod -l app=portal --ignore-not-found=true
+
+          # PVC
+          if kubectl -n "$K8S_NS" get pvc portal-pvc >/dev/null 2>&1; then
+            echo "PVC déjà existant. Suppression..."
+            kubectl -n "$K8S_NS" delete pvc portal-pvc
+          fi
+          kubectl -n "$K8S_NS" apply -f infra/k8s/pvc.yaml --validate=false
+          kubectl -n "$K8S_NS" wait --for=condition=Bound pvc/portal-pvc --timeout=60s || true
+
+          kubectl -n "$K8S_NS" apply -f infra/k8s/deployment.yaml --validate=false
+          kubectl -n "$K8S_NS" apply -f infra/k8s/service.yaml --validate=false
+          kubectl -n "$K8S_NS" apply -f infra/k8s/ingress.yaml --validate=false
+
+          echo "=== Forcer l'image du déploiement ==="
+          kubectl -n $K8S_NS set image deploy/portal portal=monprojetpfe:latest
+          kubectl -n $K8S_NS patch deploy portal -p '{"spec":{"template":{"spec":{"containers":[{"name":"portal","imagePullPolicy":"Never"}]}}}}'
+
+          echo "=== Attente rollout ==="
+          kubectl -n "$K8S_NS" rollout status deploy/portal --timeout=180s
+        '''
+      }
+    }
+  }
+
+  post {
+    always {
+      archiveArtifacts artifacts: '**/*.trx', allowEmptyArchive: true
+    }
+    failure {
+      sh '''#!/bin/bash
+        echo "=== DEBUG DÉPLOIEMENT ==="
+        kubectl -n "$K8S_NS" get pods,rs,svc,ing,pvc -o wide || true
+        kubectl -n "$K8S_NS" describe deploy/portal || true
+        kubectl -n "$K8S_NS" get events --sort-by=.lastTimestamp | tail -n 100 || true
+        kubectl -n "$K8S_NS" logs -l app=portal --all-containers --tail=200 || true
+      '''
+    }
+  }
+}

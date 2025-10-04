@@ -1,0 +1,263 @@
+@page
+@model MonProjetPFE.Pages.IndexModel
+@{
+    ViewData["Title"] = "Orchestrateur Workflows";
+}
+<header>
+    <!-- Ajout du logo -->
+    <img src="~/images/Logo Everience.png" alt="Logo Everience" />
+</header>
+<div class="container">
+    <h1 class="main-title">SCM Tools : Orchestrateur Workflows</h1>
+
+    <section class="card">
+        <h2>Créer Tâche</h2>
+        <form id="formCreer">
+            <input name="title" placeholder="Titre de la tâche" required />
+            <button type="submit" class="btn-gradient">Créer</button>
+        </form>
+    </section>
+
+    <section class="card">
+        <h2>Modifier Tâche</h2>
+        <form id="formModifier">
+            <input name="id" type="number" placeholder="Id" required />
+            <input name="title" placeholder="Nouveau titre" />
+            <input name="status" placeholder="Nouveau statut (NEW/IN_PROGRESS/DONE)" />
+            <button type="submit" class="btn-gradient">Modifier</button>
+        </form>
+    </section>
+
+    <section class="card">
+        <h2>Supprimer Tâche</h2>
+        <form id="formSupprimer">
+            <input name="id" type="number" placeholder="Id" required />
+            <button type="submit" class="btn-danger">Supprimer</button>
+        </form>
+    </section>
+
+    <section class="card">
+        <h2>Résultat</h2>
+        <pre id="result"></pre>
+    </section>
+
+    <section class="card">
+        <h2>Liste locale (SQLite)</h2>
+
+        <table>
+            <thead>
+                <tr><th>Id</th><th>Titre</th><th>Statut</th><th>Créée</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var t in Model.RecentTasks)
+                {
+                    <tr>
+                        <td>@t.Id</td>
+                        <td>@t.Title</td>
+                        <td>@t.Status</td>
+                        <td>@t.CreatedAt.ToLocalTime()</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </section>
+</div>
+
+<!-- Styles modernes -->
+<style>
+    body {
+        background: #f5f7fa;
+        font-family: 'Segoe UI', Tahoma, sans-serif;
+        color: #333;
+        margin: 0;
+        padding: 0;
+    }
+
+    .container {
+        max-width: 900px;
+        margin: auto;
+        padding: 30px;
+    }
+
+    .main-title {
+        text-align: center;
+        font-size: 2.2rem;
+        color: #4a3aff;
+        margin-bottom: 30px;
+        font-weight: bold;
+    }
+
+    section.card {
+        background: #fff;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+
+    h2 {
+        color: #4a3aff;
+        font-size: 1.3rem;
+        margin-bottom: 15px;
+    }
+
+    form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    input {
+        flex: 1;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+        outline: none;
+        transition: border-color 0.3s;
+    }
+
+    input:focus {
+        border-color: #4a3aff;
+    }
+
+    button {
+        padding: 10px 18px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        transition: 0.3s;
+        font-weight: bold;
+    }
+
+    .btn-gradient {
+        background: linear-gradient(90deg, #4a3aff, #00bcd4);
+        color: white;
+    }
+
+    .btn-gradient:hover {
+        opacity: 0.9;
+        transform: scale(1.03);
+    }
+
+    .btn-danger {
+        background: #e74c3c;
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #c0392b;
+        transform: scale(1.03);
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+    }
+
+    thead {
+        background: #4a3aff;
+        color: white;
+    }
+
+    th, td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+    }
+
+    tr:hover {
+        background: #f0f2ff;
+    }
+
+    pre {
+        background: #272822;
+        color: #f8f8f2;
+        padding: 15px;
+        border-radius: 8px;
+        overflow-x: auto;
+    }
+    
+    header img {
+    height: 40px;
+    margin-right: 10px;
+}
+</style>
+
+<script>
+async function call(actionName, payload){
+  const r = await fetch(`/api/workflows/${actionName}`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(payload||{})
+  });
+  const j = await r.json();
+  document.getElementById('result').textContent = JSON.stringify(j,null,2);
+  if(j.buildNumber){
+    let status = "RUNNING";
+    while(status === "RUNNING"){
+      await new Promise(res => setTimeout(res, 1500));
+      const s = await fetch(`/api/workflows/${actionName}/${j.buildNumber}/status`);
+      const js = await s.json();
+      status = js.status || "RUNNING";
+      document.getElementById('result').textContent = JSON.stringify(js,null,2);
+    }
+  }
+}
+
+document.getElementById('formCreer').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  await call('CreerTache', { title: fd.get('title') });
+});
+
+document.getElementById('formModifier').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  await call('ModifierTache', { id: fd.get('id'), title: fd.get('title'), status: fd.get('status') });
+});
+
+document.getElementById('formSupprimer').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  await call('SupprimerTache', { id: fd.get('id') });
+});
+
+async function refreshTable() {
+  const res = await fetch('/api/tasks');
+  const tasks = await res.json();
+  const tbody = document.querySelector('table tbody');
+  tbody.innerHTML = tasks.map(t => `
+    <tr>
+      <td>${t.id}</td>
+      <td>${t.title}</td>
+      <td>${t.status}</td>
+      <td>${new Date(t.createdAt).toLocaleString()}</td>
+    </tr>
+  `).join('');
+}
+
+// Après chaque call Jenkins → on recharge le tableau
+async function call(actionName, payload){
+  const r = await fetch(`/api/workflows/${actionName}`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(payload||{})
+  });
+  const j = await r.json();
+  document.getElementById('result').textContent = JSON.stringify(j,null,2);
+  await refreshTable(); // <=== ajout ici
+
+  if(j.buildNumber){
+    let status = "RUNNING";
+    while(status === "RUNNING"){
+      await new Promise(res => setTimeout(res, 1500));
+      const s = await fetch(`/api/workflows/${actionName}/${j.buildNumber}/status`);
+      const js = await s.json();
+      status = js.status || "RUNNING";
+      document.getElementById('result').textContent = JSON.stringify(js,null,2);
+    }
+  }
+}
+
+</script>
